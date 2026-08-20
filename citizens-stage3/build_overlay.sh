@@ -34,6 +34,10 @@ cat > "$WORK/pom.xml" <<'POM'
       <url>https://repo.codemc.io/repository/maven-releases/</url>
     </repository>
     <repository>
+      <id>AlessioDP</id>
+      <url>https://repo.alessiodp.com/releases/</url>
+    </repository>
+    <repository>
       <id>jitpack</id>
       <url>https://jitpack.io</url>
     </repository>
