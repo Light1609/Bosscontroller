@@ -46,10 +46,28 @@ jobs:
             citizens-src/main/src/main/java/net/citizensnpcs/Citizens.java \
             citizens-src/main/src/main/java/net/citizensnpcs/PacketEventsHook.java && exit 1 || true
 
-      - name: Build Citizens 2.0.43 b4232 Stage3
+      - name: Restrict distribution to Paper 26.1
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('citizens-src/dist/pom.xml')
+          text = p.read_text()
+          start = text.index('<id>spigot-release</id>')
+          end = text.index('</profile>', start)
+          profile = text[start:end]
+          pattern = r'''\s*<dependency>\s*<groupId>\$\{project\.groupId\}</groupId>\s*<artifactId>citizens-v26_2_R1</artifactId>\s*<version>\$\{project\.version\}</version>\s*<type>jar</type>\s*<scope>compile</scope>\s*</dependency>'''
+          profile2, count = re.subn(pattern, '', profile, count=1)
+          if count != 1:
+              raise SystemExit(f'Expected one v26_2_R1 dependency in spigot-release profile, got {count}')
+          p.write_text(text[:start] + profile2 + text[end:])
+          print('Removed v26_2_R1 from test distribution only')
+          PY
+
+      - name: Build Citizens 2.0.43 b4232 Stage3 for 26.1
         working-directory: citizens-src
         run: |
-          mvn -Pspigot-release -DskipTests -Dmaven.javadoc.skip=true -DBUILD_NUMBER=4232 clean package
+          mvn -pl dist -am -Pspigot-release -DskipTests -Dmaven.javadoc.skip=true -DBUILD_NUMBER=4232 clean package
 
       - name: Locate and verify JAR
         run: |
@@ -60,7 +78,20 @@ jobs:
           cp "$JAR" citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar
           sha256sum citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar > citizens-stage3/build/SHA256.txt
           unzip -p citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar plugin.yml | head -n 20
+          unzip -l citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar | grep 'v26_1_R1' | head
+          if unzip -l citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar | grep -q 'v26_2_R1'; then
+            echo 'Unexpected v26_2_R1 classes in 26.1 test JAR'
+            exit 1
+          fi
           cat citizens-stage3/build/SHA256.txt
+
+      - name: Upload fallback artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: citizens-stage3-test
+          path: |
+            citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar
+            citizens-stage3/build/SHA256.txt
 
       - name: Publish test JAR to branch
         run: |
