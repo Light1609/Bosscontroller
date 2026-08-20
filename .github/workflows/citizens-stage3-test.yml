@@ -85,6 +85,11 @@ jobs:
           path: |
             citizens-stage3/debug/build-error.txt
             citizens-stage3/debug/build.log
+            citizens-stage3/build/replacements.txt
+            citizens-stage3/build/changed-classes.txt
+            citizens-stage3/build/Citizens.javap.txt
+            citizens-stage3/build/PacketEventsHook.javap.txt
+            citizens-stage3/build/HologramTrait.javap.txt
 
       - name: Stop on overlay failure
         if: steps.overlay_build.outputs.build_exit != '0'
