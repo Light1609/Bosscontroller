@@ -1,0 +1,73 @@
+name: Citizens Stage3 Test Build
+
+on:
+  push:
+    branches:
+      - citizens-stage3-test
+    paths:
+      - 'citizens-stage3/**'
+      - '.github/workflows/citizens-stage3-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: citizens-stage3-test
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Clone exact Citizens baseline
+        run: |
+          rm -rf citizens-src
+          git clone https://github.com/CitizensDev/Citizens2.git citizens-src
+          cd citizens-src
+          git checkout 979f203909741f3f5bc459d64aec6d497e0a2c29
+          git status --short
+
+      - name: Apply Fresita Stage 1-3 only
+        run: |
+          python3 citizens-stage3/apply_stage3.py citizens-src
+          grep -R "SpigotPacketEventsBuilder\|PacketEvents.getAPI().init()\|packet.write();" \
+            citizens-src/main/src/main/java/net/citizensnpcs/Citizens.java \
+            citizens-src/main/src/main/java/net/citizensnpcs/PacketEventsHook.java && exit 1 || true
+
+      - name: Build Citizens 2.0.43 b4232 Stage3
+        working-directory: citizens-src
+        run: |
+          mvn -Pspigot-release -DskipTests -Dmaven.javadoc.skip=true -DBUILD_NUMBER=4232 clean package
+
+      - name: Locate and verify JAR
+        run: |
+          set -eux
+          JAR="citizens-src/dist/target/Citizens-2.0.43-b4232.jar"
+          test -f "$JAR"
+          mkdir -p citizens-stage3/build
+          cp "$JAR" citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar
+          sha256sum citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar > citizens-stage3/build/SHA256.txt
+          unzip -p citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar plugin.yml | head -n 20
+          cat citizens-stage3/build/SHA256.txt
+
+      - name: Publish test JAR to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f citizens-stage3/build/Citizens-2.0.43-b4232-FRESITA-STAGE3.jar citizens-stage3/build/SHA256.txt
+          if git diff --cached --quiet; then
+            echo "No build output changes"
+            exit 0
+          fi
+          git commit -m "Publish Citizens Stage3 test build [skip ci]"
+          git push origin HEAD:citizens-stage3-test
