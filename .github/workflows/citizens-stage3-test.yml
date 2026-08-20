@@ -7,6 +7,9 @@ on:
     paths:
       - 'citizens-stage3/**'
       - '.github/workflows/citizens-stage3-test.yml'
+  pull_request:
+    branches:
+      - citizens-stage3-test
   workflow_dispatch:
 
 permissions:
