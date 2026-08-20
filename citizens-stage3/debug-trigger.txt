@@ -1,1 +1,1 @@
-Trigger isolated Citizens Stage 3 build diagnostic for Paper 26.1.2.
+Trigger isolated Citizens Stage 3 build diagnostic for Paper 26.1.2 build 74, pass 2.
