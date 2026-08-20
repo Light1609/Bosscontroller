@@ -30,7 +30,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-          cache: maven
 
       - name: Clone exact Citizens b4232 source
         run: |
@@ -160,7 +159,6 @@ jobs:
           if missing_in_base:
               raise SystemExit('Compiled overlay introduced unexpected class files: ' + ', '.join(missing_in_base))
 
-          # Every baseline class in these exact three source families must have a compiled replacement.
           def targeted(n):
               return (
                   n == 'net/citizensnpcs/Citizens.class' or n.startswith('net/citizensnpcs/Citizens$') or
