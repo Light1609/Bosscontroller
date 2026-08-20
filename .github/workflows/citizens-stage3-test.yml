@@ -81,8 +81,9 @@ jobs:
           BASE='citizens-stage3/base/Citizens-2.0.43-b4232.jar'
           curl --fail --location --retry 3 --retry-delay 2 "$URL" -o "$BASE"
           test "$(stat -c '%s' "$BASE")" = '4367892'
-          unzip -p "$BASE" plugin.yml | grep -E '^version:|^name:' | head
-          unzip -l "$BASE" | grep 'net/citizensnpcs/nms/v26_1_R1/' | head
+          unzip -p "$BASE" plugin.yml | grep -E '^version:|^name:'
+          zipinfo -1 "$BASE" > citizens-stage3/base/entries.txt
+          grep 'net/citizensnpcs/nms/v26_1_R1/' citizens-stage3/base/entries.txt | sed -n '1,10p'
           sha256sum "$BASE" | tee citizens-stage3/base/SHA256-OFFICIAL.txt
 
       - name: Build patched citizens-main only
@@ -248,7 +249,7 @@ jobs:
           grep -q 'unregisterListeners' citizens-stage3/build/PacketEventsHook.javap.txt
           grep -q 'markForReEncode' citizens-stage3/build/PacketEventsHook.javap.txt
 
-          unzip -p "$OUT" plugin.yml | grep -E '^version:|^name:' | head
+          unzip -p "$OUT" plugin.yml | grep -E '^version:|^name:'
           sha256sum "$OUT" | tee citizens-stage3/build/SHA256.txt
 
       - name: Upload patched Citizens Stage3 artifact
