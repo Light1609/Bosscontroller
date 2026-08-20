@@ -42,7 +42,8 @@ jobs:
       - name: Apply Fresita Stage 1-3 only
         run: |
           python3 citizens-stage3/apply_stage3.py citizens-src
-          grep -R "SpigotPacketEventsBuilder\|PacketEvents.getAPI().init()\|packet.write();" \
+          python3 citizens-stage3/fix_modern_only.py citizens-src
+          grep -R "SpigotPacketEventsBuilder\|PacketEvents.getAPI().init()\|packet.write();\|EntityDataTypes.STRING" \
             citizens-src/main/src/main/java/net/citizensnpcs/Citizens.java \
             citizens-src/main/src/main/java/net/citizensnpcs/PacketEventsHook.java && exit 1 || true
 
