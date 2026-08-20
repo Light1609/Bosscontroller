@@ -66,6 +66,7 @@ jobs:
           set -o pipefail
           mkdir -p citizens-stage3/debug
           set +e
+          python3 citizens-stage3/fix_overlay_classpath.py
           bash citizens-stage3/build_overlay.sh 2>&1 | tee citizens-stage3/debug/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           set -e
