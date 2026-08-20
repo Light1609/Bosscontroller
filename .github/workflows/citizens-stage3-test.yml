@@ -66,11 +66,40 @@ jobs:
           PY
 
       - name: Build Citizens 2.0.43 b4232 Stage3 for 26.1
+        id: stage3_build
         working-directory: citizens-src
+        shell: bash
         run: |
-          mvn -pl dist -am -Pspigot-release -DskipTests -Dmaven.javadoc.skip=true -DBUILD_NUMBER=4232 clean package
+          set -o pipefail
+          mkdir -p "$GITHUB_WORKSPACE/citizens-stage3/debug"
+          set +e
+          mvn -pl dist -am -Pspigot-release -DskipTests -Dmaven.javadoc.skip=true -DBUILD_NUMBER=4232 clean package 2>&1 | tee "$GITHUB_WORKSPACE/citizens-stage3/debug/build.log"
+          MAVEN_EXIT=${PIPESTATUS[0]}
+          set -e
+          grep -E '(^\[ERROR\]|COMPILATION ERROR|cannot find symbol|BUILD FAILURE|Failed to execute goal|Could not resolve|Non-resolvable|Could not find artifact|package .* does not exist)' \
+            "$GITHUB_WORKSPACE/citizens-stage3/debug/build.log" \
+            | tail -n 160 > "$GITHUB_WORKSPACE/citizens-stage3/debug/build-error.txt" || true
+          echo "maven_exit=$MAVEN_EXIT" >> "$GITHUB_OUTPUT"
+          echo "Maven exit code: $MAVEN_EXIT"
+
+      - name: Upload concise Maven failure
+        if: steps.stage3_build.outputs.maven_exit != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: citizens-stage3-build-error
+          path: |
+            citizens-stage3/debug/build-error.txt
+            citizens-stage3/debug/build.log
+
+      - name: Stop on Maven failure
+        if: steps.stage3_build.outputs.maven_exit != '0'
+        run: |
+          echo 'Citizens Stage3 Maven build failed. Concise error follows:'
+          cat citizens-stage3/debug/build-error.txt
+          exit 1
 
       - name: Locate and verify JAR
+        if: steps.stage3_build.outputs.maven_exit == '0'
         run: |
           set -eux
           JAR="citizens-src/dist/target/Citizens-2.0.43-b4232.jar"
@@ -87,6 +116,7 @@ jobs:
           cat citizens-stage3/build/SHA256.txt
 
       - name: Upload fallback artifact
+        if: steps.stage3_build.outputs.maven_exit == '0'
         uses: actions/upload-artifact@v4
         with:
           name: citizens-stage3-test
@@ -95,6 +125,7 @@ jobs:
             citizens-stage3/build/SHA256.txt
 
       - name: Publish test JAR to branch
+        if: steps.stage3_build.outputs.maven_exit == '0'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
